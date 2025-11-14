@@ -8,6 +8,18 @@ export class UserService {
     private _httpClient = inject(HttpClient);
     private _user: ReplaySubject<User> = new ReplaySubject<User>(1);
 
+    constructor() {
+        // Preload user data so layout components receive an initial value.
+        // If the backend requires an access token, ensure interceptor handles it.
+        this.get().subscribe({
+            // Swallow errors silently; layout will still render with optional chaining.
+            error: () => {
+                // Emit an empty user object if fetch fails so templates can bind safely.
+                this._user.next(<User>{ id: '', name: '', email: '' });
+            },
+        });
+    }
+
     // -----------------------------------------------------------------------------------------------------
     // @ Accessors
     // -----------------------------------------------------------------------------------------------------

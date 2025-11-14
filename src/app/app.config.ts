@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
     ApplicationConfig,
     inject,
@@ -17,11 +17,14 @@ import { provideIcons } from 'app/core/icons/icons.provider';
 import { MockApiService } from 'app/mock-api';
 import { firstValueFrom } from 'rxjs';
 import { TranslocoHttpLoader } from './core/transloco/transloco.http-loader';
+import { fuseLoadingInterceptor } from '@fuse/services/loading';
+import { mockApiInterceptor } from '@fuse/lib/mock-api';
+import { msalAuthInterceptor } from 'app/core/auth/msal-auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
         provideAnimations(),
-        provideHttpClient(),
+        provideHttpClient(withInterceptors([fuseLoadingInterceptor, mockApiInterceptor, msalAuthInterceptor])),
         provideRouter(
             appRoutes,
             withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })
@@ -75,7 +78,7 @@ export const appConfig: ApplicationConfig = {
             return firstValueFrom(translocoService.load(defaultLang));
         }),
 
-        // Fuse
+        // Core providers
         provideAuth(),
         provideIcons(),
         provideFuse({
@@ -94,30 +97,12 @@ export const appConfig: ApplicationConfig = {
                 },
                 theme: 'theme-default',
                 themes: [
-                    {
-                        id: 'theme-default',
-                        name: 'Default',
-                    },
-                    {
-                        id: 'theme-brand',
-                        name: 'Brand',
-                    },
-                    {
-                        id: 'theme-teal',
-                        name: 'Teal',
-                    },
-                    {
-                        id: 'theme-rose',
-                        name: 'Rose',
-                    },
-                    {
-                        id: 'theme-purple',
-                        name: 'Purple',
-                    },
-                    {
-                        id: 'theme-amber',
-                        name: 'Amber',
-                    },
+                    { id: 'theme-default', name: 'Default' },
+                    { id: 'theme-brand', name: 'Brand' },
+                    { id: 'theme-teal', name: 'Teal' },
+                    { id: 'theme-rose', name: 'Rose' },
+                    { id: 'theme-purple', name: 'Purple' },
+                    { id: 'theme-amber', name: 'Amber' },
                 ],
             },
         }),

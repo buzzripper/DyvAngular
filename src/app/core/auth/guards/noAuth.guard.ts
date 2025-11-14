@@ -8,19 +8,14 @@ export const NoAuthGuard: CanActivateFn | CanActivateChildFn = (
     state
 ) => {
     const router: Router = inject(Router);
+    const authService = inject(AuthService);
 
-    // Check the authentication status
-    return inject(AuthService)
-        .check()
-        .pipe(
-            switchMap((authenticated) => {
-                // If the user is authenticated...
-                if (authenticated) {
-                    return of(router.parseUrl(''));
-                }
-
-                // Allow the access
-                return of(true);
-            })
-        );
+    return authService.check().pipe(
+        switchMap((authenticated) => {
+            if (authenticated) {
+                return of(router.parseUrl(''));
+            }
+            return of(true);
+        })
+    );
 };

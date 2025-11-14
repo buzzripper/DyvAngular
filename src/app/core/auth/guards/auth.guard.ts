@@ -1,30 +1,25 @@
 import { inject } from '@angular/core';
-import { CanActivateChildFn, CanActivateFn, Router } from '@angular/router';
+import { CanActivateChildFn, CanActivateFn } from '@angular/router';
 import { AuthService } from 'app/core/auth/auth.service';
-import { of, switchMap } from 'rxjs';
+import { of, switchMap, filter, take, map } from 'rxjs';
+import { MsalBroadcastService } from '@azure/msal-angular';
+import { InteractionStatus } from '@azure/msal-browser';
 
 export const AuthGuard: CanActivateFn | CanActivateChildFn = (route, state) => {
-    const router: Router = inject(Router);
+    const authService = inject(AuthService);
+    const msalBroadcast = inject(MsalBroadcastService);
 
-    // Check the authentication status
-    return inject(AuthService)
-        .check()
-        .pipe(
-            switchMap((authenticated) => {
-                // If the user is not authenticated...
-                if (!authenticated) {
-                    // Redirect to the sign-in page with a redirectUrl param
-                    const redirectURL =
-                        state.url === '/sign-out'
-                            ? ''
-                            : `redirectURL=${state.url}`;
-                    const urlTree = router.parseUrl(`sign-in?${redirectURL}`);
-
-                    return of(urlTree);
-                }
-
-                // Allow the access
-                return of(true);
-            })
-        );
+    // Wait until no interaction is in progress to avoid interaction_in_progress errors
+    return msalBroadcast.inProgress$.pipe(
+        filter((status) => status === InteractionStatus.None),
+        take(1),
+        switchMap(() => authService.check()),
+        map((authenticated) => {
+            if (!authenticated) {
+                authService.login(state.url);
+                return false;
+            }
+            return true;
+        })
+    );
 };

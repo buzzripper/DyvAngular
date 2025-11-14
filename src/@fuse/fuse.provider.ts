@@ -70,7 +70,7 @@ export const provideFuse = (
         importProvidersFrom(MatDialogModule),
         provideEnvironmentInitializer(() => inject(FuseConfirmationService)),
 
-        provideHttpClient(withInterceptors([fuseLoadingInterceptor])),
+        // Remove direct provideHttpClient registrations here to avoid duplicate interceptor configuration
         provideEnvironmentInitializer(() => inject(FuseLoadingService)),
 
         provideEnvironmentInitializer(() => inject(FuseMediaWatcherService)),
@@ -82,7 +82,7 @@ export const provideFuse = (
     // Mock Api services
     if (config?.mockApi?.service) {
         providers.push(
-            provideHttpClient(withInterceptors([mockApiInterceptor])),
+            // Remove provideHttpClient mock interceptor registration here
             provideAppInitializer(() => {
                 const mockApiService = inject(config.mockApi.service);
             })

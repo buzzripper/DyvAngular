@@ -1,178 +1,63 @@
-import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { AuthUtils } from 'app/core/auth/auth.utils';
-import { UserService } from 'app/core/user/user.service';
-import { catchError, Observable, of, switchMap, throwError } from 'rxjs';
+import { MsalService } from '@azure/msal-angular';
+import { AccountInfo, AuthenticationResult, InteractionRequiredAuthError, PopupRequest, RedirectRequest, SilentRequest } from '@azure/msal-browser';
+import { Observable, from, map, of, switchMap } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-    private _authenticated: boolean = false;
-    private _httpClient = inject(HttpClient);
-    private _userService = inject(UserService);
-
-    // -----------------------------------------------------------------------------------------------------
-    // @ Accessors
-    // -----------------------------------------------------------------------------------------------------
-
-    /**
-     * Setter & getter for access token
-     */
-    set accessToken(token: string) {
-        localStorage.setItem('accessToken', token);
-    }
-
-    get accessToken(): string {
-        return localStorage.getItem('accessToken') ?? '';
-    }
+    private _msal = inject(MsalService);
 
     // -----------------------------------------------------------------------------------------------------
     // @ Public methods
     // -----------------------------------------------------------------------------------------------------
 
     /**
-     * Forgot password
-     *
-     * @param email
+     * Initiates login using redirect flow with provided scopes/state
      */
-    forgotPassword(email: string): Observable<any> {
-        return this._httpClient.post('api/auth/forgot-password', email);
+    login(redirectUrl?: string, scopes?: string[]): void {
+        const request: RedirectRequest = {
+            scopes: scopes ?? [
+                'openid',
+                'profile',
+                'offline_access',
+                'api://dc02d6fb-755a-41b3-9bb7-ffa3acb35271/Orders.Modify',
+                'api://dc02d6fb-755a-41b3-9bb7-ffa3acb35271/Files.Read',
+            ],
+            state: redirectUrl ? encodeURIComponent(redirectUrl) : undefined,
+        };
+        this._msal.loginRedirect(request);
     }
 
     /**
-     * Reset password
-     *
-     * @param password
-     */
-    resetPassword(password: string): Observable<any> {
-        return this._httpClient.post('api/auth/reset-password', password);
-    }
-
-    /**
-     * Sign in
-     *
-     * @param credentials
-     */
-    signIn(credentials: { email: string; password: string }): Observable<any> {
-        // Throw error, if the user is already logged in
-        if (this._authenticated) {
-            return throwError('User is already logged in.');
-        }
-
-        return this._httpClient.post('api/auth/sign-in', credentials).pipe(
-            switchMap((response: any) => {
-                // Store the access token in the local storage
-                this.accessToken = response.accessToken;
-
-                // Set the authenticated flag to true
-                this._authenticated = true;
-
-                // Store the user on the user service
-                this._userService.user = response.user;
-
-                // Return a new observable with the response
-                return of(response);
-            })
-        );
-    }
-
-    /**
-     * Sign in using the access token
-     */
-    signInUsingToken(): Observable<any> {
-        // Sign in using the token
-        return this._httpClient
-            .post('api/auth/sign-in-with-token', {
-                accessToken: this.accessToken,
-            })
-            .pipe(
-                catchError(() =>
-                    // Return false
-                    of(false)
-                ),
-                switchMap((response: any) => {
-                    // Replace the access token with the new one if it's available on
-                    // the response object.
-                    //
-                    // This is an added optional step for better security. Once you sign
-                    // in using the token, you should generate a new one on the server
-                    // side and attach it to the response object. Then the following
-                    // piece of code can replace the token with the refreshed one.
-                    if (response.accessToken) {
-                        this.accessToken = response.accessToken;
-                    }
-
-                    // Set the authenticated flag to true
-                    this._authenticated = true;
-
-                    // Store the user on the user service
-                    this._userService.user = response.user;
-
-                    // Return true
-                    return of(true);
-                })
-            );
-    }
-
-    /**
-     * Sign out
+     * Logout via redirect
      */
     signOut(): Observable<any> {
-        // Remove the access token from the local storage
-        localStorage.removeItem('accessToken');
-
-        // Set the authenticated flag to false
-        this._authenticated = false;
-
-        // Return the observable
+        this._msal.logoutRedirect({});
         return of(true);
     }
 
     /**
-     * Sign up
-     *
-     * @param user
-     */
-    signUp(user: {
-        name: string;
-        email: string;
-        password: string;
-        company: string;
-    }): Observable<any> {
-        return this._httpClient.post('api/auth/sign-up', user);
-    }
-
-    /**
-     * Unlock session
-     *
-     * @param credentials
-     */
-    unlockSession(credentials: {
-        email: string;
-        password: string;
-    }): Observable<any> {
-        return this._httpClient.post('api/auth/unlock-session', credentials);
-    }
-
-    /**
-     * Check the authentication status
+     * Check whether a user account is present in the cache
      */
     check(): Observable<boolean> {
-        // Check if the user is logged in
-        if (this._authenticated) {
-            return of(true);
-        }
+        const accounts = this._msal.instance.getAllAccounts();
+        return of(accounts && accounts.length > 0);
+    }
 
-        // Check the access token availability
-        if (!this.accessToken) {
-            return of(false);
-        }
+    /**
+     * Acquire an access token for given scopes silently; falls back to interactive login
+     */
+    acquireToken(scopes: string[]): Observable<string> {
+        const account: AccountInfo | undefined = this._msal.instance.getActiveAccount() || this._msal.instance.getAllAccounts()[0];
+        const silentRequest: SilentRequest = {
+            account,
+            scopes,
+        };
 
-        // Check the access token expire date
-        if (AuthUtils.isTokenExpired(this.accessToken)) {
-            return of(false);
-        }
-
-        // If the access token exists, and it didn't expire, sign in using it
-        return this.signInUsingToken();
+        return from(this._msal.acquireTokenSilent(silentRequest)).pipe(
+            map((res: AuthenticationResult) => res.accessToken),
+            // If silent fails with interaction required, trigger login and return empty
+            switchMap((token) => of(token))
+        );
     }
 }
