@@ -18,31 +18,14 @@ export const appRoutes: Route[] = [
     // Redirect signed-in user to the '/example'
     {path: 'signed-in-redirect', pathMatch : 'full', redirectTo: 'example'},
 
-    // Auth routes for guests
+    // Public auth routes (sign-in & sign-out should not force login)
     {
         path: '',
-        canActivate: [NoAuthGuard],
-        canActivateChild: [NoAuthGuard],
         component: LayoutComponent,
-        data: {
-            layout: 'empty'
-        },
+        data: { layout: 'empty' },
         children: [
-            {path: 'sign-in', loadChildren: () => import('app/modules/auth/sign-in/sign-in.routes')},
-        ]
-    },
-
-    // Auth routes for authenticated users
-    {
-        path: '',
-        canActivate: [MsalGuard],
-        canActivateChild: [MsalGuard],
-        component: LayoutComponent,
-        data: {
-            layout: 'empty'
-        },
-        children: [
-            {path: 'sign-out', loadChildren: () => import('app/modules/auth/sign-out/sign-out.routes')},
+            { path: 'sign-in', loadChildren: () => import('app/modules/auth/sign-in/sign-in.routes') },
+            { path: 'sign-out', loadChildren: () => import('app/modules/auth/sign-out/sign-out.routes') },
         ]
     },
 
@@ -50,23 +33,19 @@ export const appRoutes: Route[] = [
     {
         path: '',
         component: LayoutComponent,
-        data: {
-            layout: 'empty'
-        },
+        data: { layout: 'empty' },
         children: [
             {path: 'home', loadChildren: () => import('app/modules/landing/home/home.routes')},
         ]
     },
 
-    // Admin routes
+    // Admin routes (protected)
     {
         path: '',
         canActivate: [MsalGuard],
         canActivateChild: [MsalGuard],
         component: LayoutComponent,
-        resolve: {
-            initialData: initialDataResolver
-        },
+        resolve: { initialData: initialDataResolver },
         children: [
             {path: 'example', loadChildren: () => import('app/modules/admin/example/example.routes')},
         ]

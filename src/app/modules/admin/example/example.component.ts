@@ -1,4 +1,5 @@
 import { Component, ViewEncapsulation } from '@angular/core';
+import { AuthService } from 'app/core/auth/auth.service';
 
 @Component({
     selector     : 'example',
@@ -11,7 +12,14 @@ export class ExampleComponent
     /**
      * Constructor
      */
-    constructor()
+    constructor(
+        private _authService: AuthService
+    )
     {
+    }
+
+    async ngOnInit() {
+        const token = await this._authService.acquireToken();
+        console.log(token);
     }
 }

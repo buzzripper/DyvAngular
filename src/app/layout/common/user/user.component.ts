@@ -17,6 +17,7 @@ import { Router } from '@angular/router';
 import { UserService } from 'app/core/user/user.service';
 import { User } from 'app/core/user/user.types';
 import { Subject, takeUntil } from 'rxjs';
+import { AuthService } from 'app/core/auth/auth.service';
 
 @Component({
     selector: 'user',
@@ -48,7 +49,8 @@ export class UserComponent implements OnInit, OnDestroy {
     constructor(
         private _changeDetectorRef: ChangeDetectorRef,
         private _router: Router,
-        private _userService: UserService
+        private _userService: UserService,
+        private _authService: AuthService
     ) {}
 
     // -----------------------------------------------------------------------------------------------------
@@ -107,6 +109,10 @@ export class UserComponent implements OnInit, OnDestroy {
      * Sign out
      */
     signOut(): void {
-        this._router.navigate(['/sign-out']);
+        /*this._router.navigate(['/sign-out']);*/
+        //this._router.navigate(['https://dyvenix.ciamlogin.com/1c3cdcca-ba60-4ad2-9892-626f5d92bc09/oauth2/v2.0/logout?post_logout_redirect_uri=http%3A%2F%2Flocalhost:4200/sign-out']);
+
+        //this._authService.signOut({ redirectTo: `${window.location.origin}/sign-out` }).subscribe();
+        this._authService.signOut().subscribe();
     }
 }

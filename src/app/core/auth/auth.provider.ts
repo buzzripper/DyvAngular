@@ -48,7 +48,7 @@ function MSALInstanceFactory(): IPublicClientApplication {
             clientId: CLIENT_ID,
             authority: AUTHORITY,
             redirectUri: `${window.location.origin}/auth/callback`,
-            postLogoutRedirectUri: window.location.origin,
+            //postLogoutRedirectUri: window.location.origin + '/sign-out',
             navigateToLoginRequestUrl: true,
         },
         cache: {

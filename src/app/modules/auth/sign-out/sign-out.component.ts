@@ -10,6 +10,7 @@ import { AuthService } from 'app/core/auth/auth.service';
 })
 export class AuthSignOutComponent {
     constructor(private _authService: AuthService) {
-        this._authService.signOut().subscribe();
+        // After logout, remain on sign-out route instead of redirecting to Azure login
+        //this._authService.signOut({ redirectTo: `${window.location.origin}/sign-out` }).subscribe();
     }
 }
